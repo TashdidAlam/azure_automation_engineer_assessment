@@ -42,6 +42,8 @@ After each deployment, the pipeline runs `post-deployment.ps1`, which checks:
 5. VNet Peering is Connected in both directions
 6. Data Factory has public access disabled and Managed Identity enabled
 7. Private DNS Zones are linked to both VNets
+8. Log Analytics workspace exists and retention matches the environment setting
+9. Diagnostic settings are attached to key resources (Firewall, Bastion, SQL Database, Data Factory)
 
 In DEV, validation failures are logged as warnings. In STG and PROD, any failure stops the pipeline.
 

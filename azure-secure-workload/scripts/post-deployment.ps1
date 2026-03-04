@@ -79,7 +79,7 @@ Write-Host ""
 # CHECK 1: Verify Resource Group Exists
 # ============================================================================
 
-Write-Host "[CHECK] [1/7] Verifying Resource Group..." -ForegroundColor Yellow
+Write-Host "[CHECK] [1/9] Verifying Resource Group..." -ForegroundColor Yellow
 
 try {
     $rg = Get-AzResourceGroup -Name $ResourceGroupName
@@ -96,7 +96,7 @@ catch {
 # CHECK 2: Verify SQL Server - Public Access Disabled + Entra Auth
 # ============================================================================
 
-Write-Host "[CHECK] [2/7] Verifying Azure SQL Server configuration..." -ForegroundColor Yellow
+Write-Host "[CHECK] [2/9] Verifying Azure SQL Server configuration..." -ForegroundColor Yellow
 
 try {
     $sqlServers = Get-AzSqlServer -ResourceGroupName $ResourceGroupName
@@ -131,7 +131,7 @@ catch {
 # CHECK 3: Verify App Service - Public Access Disabled + Managed Identity
 # ============================================================================
 
-Write-Host "[CHECK] [3/7] Verifying App Service configuration..." -ForegroundColor Yellow
+Write-Host "[CHECK] [3/9] Verifying App Service configuration..." -ForegroundColor Yellow
 
 try {
     $webApps = Get-AzWebApp -ResourceGroupName $ResourceGroupName
@@ -178,7 +178,7 @@ catch {
 # CHECK 4: Verify Private Endpoints - Provisioned and Connected
 # ============================================================================
 
-Write-Host "[CHECK] [4/7] Verifying Private Endpoints..." -ForegroundColor Yellow
+Write-Host "[CHECK] [4/9] Verifying Private Endpoints..." -ForegroundColor Yellow
 
 try {
     $privateEndpoints = Get-AzPrivateEndpoint -ResourceGroupName $ResourceGroupName
@@ -211,7 +211,7 @@ catch {
 # CHECK 5: Verify VNet Peering - Connected State
 # ============================================================================
 
-Write-Host "[CHECK] [5/7] Verifying VNet Peering..." -ForegroundColor Yellow
+Write-Host "[CHECK] [5/9] Verifying VNet Peering..." -ForegroundColor Yellow
 
 try {
     $vnets = Get-AzVirtualNetwork -ResourceGroupName $ResourceGroupName
@@ -239,7 +239,7 @@ catch {
 # CHECK 6: Verify Data Factory - Public Access Disabled
 # ============================================================================
 
-Write-Host "[CHECK] [6/7] Verifying Data Factory configuration..." -ForegroundColor Yellow
+Write-Host "[CHECK] [6/9] Verifying Data Factory configuration..." -ForegroundColor Yellow
 
 try {
     $dataFactories = $null
@@ -303,7 +303,7 @@ catch {
 # CHECK 7: Verify Private DNS Zones - VNet Links
 # ============================================================================
 
-Write-Host "[CHECK] [7/7] Verifying Private DNS Zones..." -ForegroundColor Yellow
+Write-Host "[CHECK] [7/9] Verifying Private DNS Zones..." -ForegroundColor Yellow
 
 $expectedZones = @(
     'privatelink.azurewebsites.net',
@@ -364,7 +364,7 @@ foreach ($zoneName in $expectedZones) {
 # ============================================================================
 
 Write-Host ""
-Write-Host "CHECK 8: Log Analytics Workspace" -ForegroundColor Yellow
+Write-Host "[CHECK] [8/9] Verifying Log Analytics Workspace..." -ForegroundColor Yellow
 
 try {
     $lawResources = Get-AzResource -ResourceGroupName $ResourceGroupName -ResourceType 'Microsoft.OperationalInsights/workspaces' -ErrorAction Stop
@@ -390,7 +390,7 @@ catch {
 # ============================================================================
 
 Write-Host ""
-Write-Host "CHECK 9: Diagnostic Settings" -ForegroundColor Yellow
+Write-Host "[CHECK] [9/9] Verifying Diagnostic Settings..." -ForegroundColor Yellow
 
 $diagTargets = @(
     @{ Type = 'Microsoft.Network/azureFirewalls'; Label = 'Firewall' }

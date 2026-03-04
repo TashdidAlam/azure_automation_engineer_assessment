@@ -29,8 +29,8 @@ param deployRbac = true
 param deployMonitoring = true
 param logRetentionDays = 60
 
-param entraAdminObjectId = '5eadddb3-78f7-4efd-af3d-4db983f695fb'
-param entraAdminDisplayName = 'sql-admin'
+param entraAdminObjectId = '<YOUR-ENTRA-ADMIN-OBJECT-ID>'      // Replace with your Entra admin's Object ID
+param entraAdminDisplayName = '<YOUR-ENTRA-ADMIN-DISPLAY-NAME>'  // Replace with your Entra admin's display name
 
 param tags = {
   Environment: 'stg'

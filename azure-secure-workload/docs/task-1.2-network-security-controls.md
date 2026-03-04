@@ -75,13 +75,13 @@ In an enterprise setting, these policies should be assigned at the Management Gr
 
 After every deployment, a PowerShell script validates the security posture:
 
-1. SQL Server public access is disabled and Entra admin is configured
-2. App Service public access is disabled and Managed Identity is enabled
-3. All Private Endpoints are in Approved connection state
-4. VNet Peering is in Connected state (both directions)
-5. Data Factory public access is disabled and Managed Identity is enabled
-6. All four Private DNS Zones are linked to both Hub and Spoke VNets
-7. Key Vault public access is disabled (if deployed)
+1. Resource group exists and has the expected resources
+2. SQL Server public access is disabled and Entra admin is configured
+3. App Service public access is disabled and Managed Identity is enabled
+4. All Private Endpoints are in Approved connection state
+5. VNet Peering is in Connected state (both directions)
+6. Data Factory public access is disabled and Managed Identity is enabled
+7. All four Private DNS Zones are linked to both Hub and Spoke VNets
 8. Log Analytics workspace exists and retention matches the environment setting
 9. Diagnostic settings are attached to Firewall, Bastion, SQL Database, and Data Factory
 

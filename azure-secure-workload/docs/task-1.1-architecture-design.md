@@ -97,7 +97,7 @@ Azure Policy assignments are scoped to the resource group rather than the Manage
 | Region strategy | Single region (westus3) | Multi-region with failover |
 | RBAC deployment | Enabled (UAA scoped to each RG) | UAA at Management Group scope with resource-level assignments |
 | Policy scope | Resource Group | Management Group |
-| Monitoring | Log Analytics workspace + diagnostic settings on all resources (gated by deployMonitoring flag). Defender for Cloud data collection rule routes security events to workspace. | Full Azure Monitor with Application Insights APM, alerting rules, and dashboards |
+| Monitoring | Log Analytics workspace + diagnostic settings on all resources (gated by deployMonitoring flag). Defender for Cloud pricing plans enabled at subscription scope (Free tier). | Full Azure Monitor with Application Insights APM, alerting rules, and dashboards |
 | Secret management | Managed Identities only | Azure Key Vault for certificates and rotation |
 | DDoS protection | None | DDoS Protection Standard on Hub VNet |
 | WAF | None | Azure Front Door or Application Gateway with WAF |

@@ -47,7 +47,8 @@ azure-secure-workload/
       compute/                        App Service, Databricks
       data/                           SQL Server, Data Factory
       identity/                       RBAC role assignment module
-      security/                       Private Endpoint module, Policy assignments
+      security/                       Private Endpoint module, Policy assignments, Defender
+      monitoring/                     Log Analytics workspace, Diagnostic settings
   pipelines/
     azure-pipelines.yml               Multi-stage CI/CD pipeline
   scripts/
@@ -65,14 +66,14 @@ azure-secure-workload/
 
 ## How the Pipeline Works
 
-The pipeline triggers on pushes to dev, stg, prod, and feature branches. It only runs when files change under `infra/`, `pipelines/`, or `scripts/`.
+The pipeline triggers on pushes to dev, staging, production, and feature branches. It only runs when files change under `infra/`, `pipelines/`, or `scripts/`.
 
 Every push goes through validation first: Bicep build, lint, and a What-If preview. Feature branches (dev-*) stop here and never deploy.
 
 For environment branches, the pipeline deploys and then runs post-deployment validation:
 - **dev branch** deploys to DEV automatically
-- **stg branch** deploys to STG after approval
-- **prod branch** deploys to PROD after manual approval, with an extra What-If preview
+- **staging branch** deploys to STG after approval
+- **production branch** deploys to PROD after manual approval, with an extra What-If preview
 
 After each deployment, a PowerShell script checks that public access is disabled on all services, Private Endpoints are connected, Managed Identities are enabled, and DNS zones are properly linked.
 

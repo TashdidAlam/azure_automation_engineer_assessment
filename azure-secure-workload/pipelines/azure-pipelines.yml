@@ -24,7 +24,7 @@ pr:
       - azure-secure-workload/scripts/**
 
 variables:
-  azureServiceConnection: 'AzureAutomation'
+  azureServiceConnection: '<YOUR-SERVICE-CONNECTION>'   # Replace with your Azure DevOps service connection name
   templateFile: 'azure-secure-workload/infra/main.bicep'
   resourceGroupPrefix: 'rg-secure-workload'
   location: 'westus3'

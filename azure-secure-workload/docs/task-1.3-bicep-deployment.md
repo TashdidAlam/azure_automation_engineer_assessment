@@ -30,7 +30,7 @@ infra/
     security/
       private-endpoint.bicep          Generic PE module with DNS zone group
       policy.bicep                    Azure Policy assignments
-      defender.bicep                  Defender for Cloud data collection rule
+      defender.bicep                  Defender for Cloud pricing plans (subscription scope)
     monitoring/
       log-analytics.bicep             Log Analytics workspace
       diagnostic-settings.bicep       Diagnostic settings for all resources
@@ -43,17 +43,17 @@ The orchestrator deploys resources in dependency order using `dependsOn`:
 1. Hub VNet and Spoke VNet go first (no dependencies, deployed in parallel)
 2. VNet Peering and Private DNS Zones come next (they need both VNets)
 3. Bastion and Firewall depend on the Hub VNet subnets
-4. App Service, SQL Server, Data Factory, and Databricks depend on peering being established
+4. App Service and Databricks depend on peering being established; SQL Server and Data Factory have no peering dependency
 5. Private Endpoints depend on the services existing plus the DNS zones and PE subnet
 6. RBAC assignments depend on the Managed Identity principal IDs from each service
 7. Policy assignments are independent and go last
 8. Log Analytics workspace deploys independently (no dependencies)
 9. Diagnostic settings depend on all services + Log Analytics being ready
-10. Defender data collection rule depends on Log Analytics
+10. Defender pricing plans deploy at subscription scope (depends on Log Analytics)
 
 ## Conditional Deployments
 
-Three boolean parameters control optional features:
+Four boolean parameters control optional features:
 
 - `deployAppService` -- set to false if the region has no VM compute quota (App Service needs it)
 - `deployRbac` -- set to false if the service principal does not have User Access Administrator role
@@ -101,7 +101,7 @@ Sometimes a region has quota or provisioning restrictions for specific services.
 
 **diagnostic-settings.bicep** attaches diagnostic settings to all deployed resources (SQL Database, Azure Firewall, Bastion, Databricks, Data Factory, App Service). All logs and metrics route to the central Log Analytics workspace. Uses `existing` keyword to reference resources deployed by other modules.
 
-**defender.bicep** creates a data collection rule that routes Microsoft Defender for Cloud security events to the Log Analytics workspace. Full Defender plans (for SQL, App Service, etc.) are subscription-scoped and should be enabled separately in the Azure Portal.
+**defender.bicep** enables Microsoft Defender for Cloud pricing plans (Free tier) at subscription scope for SQL, App Services, Containers, Storage, Key Vault, ARM, open-source databases, and Cosmos DB. This provides security assessments and recommendations without additional cost.
 
 ## Parameter Files
 
