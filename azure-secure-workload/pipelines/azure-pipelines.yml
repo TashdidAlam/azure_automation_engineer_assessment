@@ -1,0 +1,319 @@
+trigger:
+  branches:
+    include:
+      - dev
+      - staging
+      - production
+      - dev-*
+  paths:
+    include:
+      - azure-secure-workload/infra/**
+      - azure-secure-workload/pipelines/**
+      - azure-secure-workload/scripts/**
+
+pr:
+  branches:
+    include:
+      - dev
+      - staging
+      - production
+  paths:
+    include:
+      - azure-secure-workload/infra/**
+      - azure-secure-workload/pipelines/**
+      - azure-secure-workload/scripts/**
+
+variables:
+  azureServiceConnection: 'AzureAutomation'
+  templateFile: 'azure-secure-workload/infra/main.bicep'
+  resourceGroupPrefix: 'rg-secure-workload'
+  location: 'westus3'
+
+stages:
+  - stage: Validate
+    displayName: 'Validate Infrastructure Code'
+    jobs:
+      - job: BicepValidation
+        displayName: 'Bicep Build, Lint & What-If'
+        pool:
+          name: 'Default'
+        steps:
+          - checkout: self
+            fetchDepth: '0'
+
+          - task: AzureCLI@2
+            displayName: 'Install Bicep CLI'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az bicep install
+                az bicep version
+
+          - task: AzureCLI@2
+            displayName: 'Bicep Build - Compile & Validate Syntax'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $env:PYTHONIOENCODING = 'utf-8'
+                Write-Host "##[section]Building Bicep template..."
+                az bicep build --file $(templateFile)
+                Write-Host "##[section]Bicep build successful - no syntax errors"
+
+          - task: AzureCLI@2
+            displayName: 'Bicep Lint - Best Practice Analysis'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "##[section]Linting Bicep template..."
+                az bicep lint --file $(templateFile)
+                Write-Host "##[section]Bicep lint passed"
+
+          - pwsh: |
+              $branchName = "$(Build.SourceBranchName)"
+              Write-Host "Branch: $branchName"
+
+              if ($branchName -eq "production") {
+                $paramFile = "azure-secure-workload/infra/parameters/prod.bicepparam"
+                $resourceGroup = "$(resourceGroupPrefix)-prod"
+              } elseif ($branchName -eq "staging") {
+                $paramFile = "azure-secure-workload/infra/parameters/stg.bicepparam"
+                $resourceGroup = "$(resourceGroupPrefix)-stg"
+              } else {
+                $paramFile = "azure-secure-workload/infra/parameters/dev.bicepparam"
+                $resourceGroup = "$(resourceGroupPrefix)-dev"
+              }
+
+              Write-Host "##vso[task.setvariable variable=parameterFile]$paramFile"
+              Write-Host "##vso[task.setvariable variable=resourceGroup]$resourceGroup"
+              Write-Host "##[section]Parameter file: $paramFile"
+              Write-Host "##[section]Resource group: $resourceGroup"
+            displayName: 'Resolve Parameter File from Branch'
+
+          - task: AzureCLI@2
+            displayName: 'Ensure Resource Group Exists'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "##[section]Ensuring resource group $(resourceGroup) exists..."
+                az group create `
+                  --name $(resourceGroup) `
+                  --location $(location) `
+                  --tags Environment=validation Project="Azure Secure Workload" ManagedBy=Bicep
+                Write-Host "##[section]Resource group ready"
+
+          - task: AzureCLI@2
+            displayName: 'What-If Deployment - Preview Changes'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "##[section]Running What-If deployment..."
+                az deployment group what-if `
+                  --resource-group $(resourceGroup) `
+                  --template-file $(templateFile) `
+                  --parameters $(parameterFile) `
+                  --result-format FullResourcePayloads
+                Write-Host "##[section]What-If analysis complete"
+
+  - stage: DeployDev
+    displayName: 'Deploy to DEV'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'dev'))
+    variables:
+      envName: 'dev'
+      resourceGroup: '$(resourceGroupPrefix)-dev'
+      parameterFile: 'azure-secure-workload/infra/parameters/dev.bicepparam'
+    jobs:
+      - deployment: DeployInfrastructure
+        displayName: 'Deploy Infrastructure to DEV'
+        pool:
+          name: 'Default'
+        environment: 'secure-workload-dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Ensure Resource Group Exists'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az group create `
+                        --name $(resourceGroup) `
+                        --location $(location) `
+                        --tags Environment=dev Project="Azure Secure Workload" ManagedBy=Bicep
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep to DEV'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      Write-Host "##[section]Deploying to DEV environment..."
+                      az deployment group create `
+                        --resource-group $(resourceGroup) `
+                        --template-file $(templateFile) `
+                        --parameters $(parameterFile) `
+                        --name "deploy-$(envName)-$(Build.BuildId)" `
+                        --mode Incremental `
+                        --verbose
+                      Write-Host "##[section]DEV deployment complete"
+
+                - task: AzurePowerShell@5
+                  displayName: 'Post-Deployment Validation'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    ScriptType: 'FilePath'
+                    ScriptPath: 'azure-secure-workload/scripts/post-deployment.ps1'
+                    ScriptArguments: >-
+                      -ResourceGroupName $(resourceGroup)
+                      -EnvironmentName $(envName)
+                    azurePowerShellVersion: 'LatestVersion'
+
+  - stage: DeployStg
+    displayName: 'Deploy to STAGING'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'staging'))
+    variables:
+      envName: 'stg'
+      resourceGroup: '$(resourceGroupPrefix)-stg'
+      parameterFile: 'azure-secure-workload/infra/parameters/stg.bicepparam'
+    jobs:
+      - deployment: DeployInfrastructure
+        displayName: 'Deploy Infrastructure to STAGING'
+        pool:
+          name: 'Default'
+        environment: 'secure-workload-stg'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Ensure Resource Group Exists'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az group create `
+                        --name $(resourceGroup) `
+                        --location $(location) `
+                        --tags Environment=stg Project="Azure Secure Workload" ManagedBy=Bicep
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep to STAGING'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      Write-Host "##[section]Deploying to STAGING environment..."
+                      az deployment group create `
+                        --resource-group $(resourceGroup) `
+                        --template-file $(templateFile) `
+                        --parameters $(parameterFile) `
+                        --name "deploy-$(envName)-$(Build.BuildId)" `
+                        --mode Incremental `
+                        --verbose
+                      Write-Host "##[section]STAGING deployment complete"
+
+                - task: AzurePowerShell@5
+                  displayName: 'Post-Deployment Validation'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    ScriptType: 'FilePath'
+                    ScriptPath: 'azure-secure-workload/scripts/post-deployment.ps1'
+                    ScriptArguments: >-
+                      -ResourceGroupName $(resourceGroup)
+                      -EnvironmentName $(envName)
+                    azurePowerShellVersion: 'LatestVersion'
+
+  - stage: DeployProd
+    displayName: 'Deploy to PRODUCTION'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'production'))
+    variables:
+      envName: 'prod'
+      resourceGroup: '$(resourceGroupPrefix)-prod'
+      parameterFile: 'azure-secure-workload/infra/parameters/prod.bicepparam'
+    jobs:
+      - deployment: DeployInfrastructure
+        displayName: 'Deploy Infrastructure to PRODUCTION'
+        pool:
+          name: 'Default'
+        environment: 'secure-workload-prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'PROD What-If - Final Change Preview'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      Write-Host "##[warning]PRODUCTION DEPLOYMENT - Previewing changes..."
+                      az deployment group what-if `
+                        --resource-group $(resourceGroup) `
+                        --template-file $(templateFile) `
+                        --parameters $(parameterFile) `
+                        --result-format FullResourcePayloads
+
+                - task: AzureCLI@2
+                  displayName: 'Ensure Resource Group Exists'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az group create `
+                        --name $(resourceGroup) `
+                        --location $(location) `
+                        --tags Environment=prod Project="Azure Secure Workload" ManagedBy=Bicep Criticality="Business Critical"
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep to PRODUCTION'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'pscore'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      Write-Host "##[warning]DEPLOYING TO PRODUCTION..."
+                      az deployment group create `
+                        --resource-group $(resourceGroup) `
+                        --template-file $(templateFile) `
+                        --parameters $(parameterFile) `
+                        --name "deploy-$(envName)-$(Build.BuildId)" `
+                        --mode Incremental `
+                        --verbose
+                      Write-Host "##[section]PRODUCTION deployment complete"
+
+                - task: AzurePowerShell@5
+                  displayName: 'Post-Deployment Validation'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    ScriptType: 'FilePath'
+                    ScriptPath: 'azure-secure-workload/scripts/post-deployment.ps1'
+                    ScriptArguments: >-
+                      -ResourceGroupName $(resourceGroup)
+                      -EnvironmentName $(envName)
+                    azurePowerShellVersion: 'LatestVersion'

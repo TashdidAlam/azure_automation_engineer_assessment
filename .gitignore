@@ -1,0 +1,31 @@
+# Bicep build artifacts
+*.json
+!**/parameters/*.json
+
+# ARM template outputs
+azuredeploy.json
+
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+
+# PowerShell
+*.psm1.bak
+
+# Archived / reference docs (local only)
+_archive/
+
+# Node (if tooling is added)
+node_modules/
