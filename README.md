@@ -1,4 +1,4 @@
-# BracIT Automation
+# Azure Automation
 
 Azure infrastructure automation using Bicep and Azure DevOps pipelines.
 
