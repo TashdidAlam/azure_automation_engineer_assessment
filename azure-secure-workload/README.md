@@ -58,9 +58,9 @@ azure-secure-workload/
     task-1.2-network-security-controls.md
     task-1.3-bicep-deployment.md
     task-1.4-identity-access.md
-    task-2.1-2.2-pipeline-design.md
-    task-3.1-3.3-rbac-migration.md
-    task-4.1-4.2-security-governance.md
+    task-2-pipeline-design.md
+    task-3-rbac-migration.md
+    task-4-security-governance.md
 ```
 
 ## How the Pipeline Works
@@ -118,6 +118,6 @@ Each assessment task has a matching document in the `docs/` folder:
 | task-1.2-network-security-controls.md | Service-level security settings, NSGs, firewall, policies |
 | task-1.3-bicep-deployment.md | Module breakdown, deployment order, conditional flags |
 | task-1.4-identity-access.md | Managed Identities, RBAC assignments, least-privilege |
-| task-2.1-2.2-pipeline-design.md | Pipeline stages, environment handling, YAML walkthrough |
-| task-3.1-3.3-rbac-migration.md | Migration strategy, PowerShell script, risks, testing guide |
-| task-4.1-4.2-security-governance.md | Policy enforcement, failure scenarios, rollback |
+| task-2-pipeline-design.md | Pipeline stages, environment handling, YAML walkthrough |
+| task-3-rbac-migration.md | Migration strategy, PowerShell script, risks, testing guide |
+| task-4-security-governance.md | Policy enforcement, failure scenarios, rollback |
